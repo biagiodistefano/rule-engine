@@ -15,10 +15,12 @@ class Rule:
 
     def __and__(self, other: "Rule") -> "Rule":
         if not isinstance(other, Rule):
-            raise ValueError("The right operand must be an instance of Rule")
+            raise ValueError("The right operand must be an instance of `Rule`")
         return Rule(self, other)
 
     def __or__(self, other: "Rule") -> "Rule":
+        if not isinstance(other, Rule):
+            raise ValueError("The right operand must be an instance of `Rule`")
         new_rule = Rule(self)
         new_rule.conditions.append(("OR", other))
         return new_rule
