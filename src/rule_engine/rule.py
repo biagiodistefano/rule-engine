@@ -2,26 +2,26 @@ import typing as t
 
 
 class Rule:
-    def __init__(self, *args: 'Rule', **conditions: t.Any) -> None:
-        self.conditions: t.List[t.Tuple[str, t.Union[dict, 'Rule']]] = []
+    def __init__(self, *args: "Rule", **conditions: t.Any) -> None:
+        self.conditions: t.List[t.Tuple[str, t.Union[dict, "Rule"]]] = []
         if args:
             for arg in args:
                 if isinstance(arg, Rule):
-                    self.conditions.append(('AND', arg))
+                    self.conditions.append(("AND", arg))
         if conditions:
-            self.conditions.append(('AND', conditions))
+            self.conditions.append(("AND", conditions))
 
-    def __and__(self, other: 'Rule') -> 'Rule':
+    def __and__(self, other: "Rule") -> "Rule":
         if not isinstance(other, Rule):
             raise ValueError("The right operand must be an instance of Rule")
         return Rule(self, other)
 
-    def __or__(self, other: 'Rule') -> 'Rule':
+    def __or__(self, other: "Rule") -> "Rule":
         new_rule = Rule(self)
-        new_rule.conditions.append(('OR', other))
+        new_rule.conditions.append(("OR", other))
         return new_rule
 
-    def _evaluate_condition(self, condition: t.Union[dict, 'Rule'], example: t.Dict[str, t.Any]) -> bool:
+    def _evaluate_condition(self, condition: t.Union[dict, "Rule"], example: t.Dict[str, t.Any]) -> bool:
         if isinstance(condition, Rule):
             return condition.evaluate(example)
         else:
@@ -37,34 +37,34 @@ class Rule:
 
     @staticmethod
     def _evaluate_operator(operator: str, field_value: t.Any, condition_value: t.Any) -> bool:
-        if operator == 'gte':
+        if operator == "gte":
             return field_value >= condition_value
-        elif operator == 'gt':
+        elif operator == "gt":
             return field_value > condition_value
-        elif operator == 'lte':
+        elif operator == "lte":
             return field_value <= condition_value
-        elif operator == 'lt':
+        elif operator == "lt":
             return field_value < condition_value
-        elif operator == 'in':
+        elif operator == "in":
             return field_value in condition_value
-        elif operator == 'startswith':
+        elif operator == "startswith":
             return isinstance(field_value, str) and field_value.startswith(condition_value)
-        elif operator == 'endswith':
+        elif operator == "endswith":
             return isinstance(field_value, str) and field_value.endswith(condition_value)
-        elif operator == 'contains':
+        elif operator == "contains":
             if isinstance(condition_value, str):
                 return condition_value in field_value
             else:
                 return field_value in condition_value
-        elif operator == 'icontains':
+        elif operator == "icontains":
             if isinstance(field_value, str) and isinstance(condition_value, str):
                 return condition_value.lower() in field_value.lower()
-        elif operator == 'exact':  # a bit redundant, but it's here for clarity
+        elif operator == "exact":  # a bit redundant, but it's here for clarity
             return field_value == condition_value
-        elif operator == 'iexact':
+        elif operator == "iexact":
             if isinstance(field_value, str) and isinstance(condition_value, str):
                 return field_value.lower() == condition_value.lower()
-        elif operator == 'ne':
+        elif operator == "ne":
             return field_value != condition_value
         return False
 
@@ -76,9 +76,9 @@ class Rule:
         for op, condition in self.conditions:
             if result is None:
                 result = self._evaluate_condition(condition, example)
-            elif op == 'AND':
+            elif op == "AND":
                 result = result and self._evaluate_condition(condition, example)
-            elif op == 'OR':
+            elif op == "OR":
                 result = result or self._evaluate_condition(condition, example)
             else:
                 raise ValueError(f"I REALLY should not be here. Unknown operator: {op}")
