@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "rule-engine"
+version = "0.1.0"
+description = "A simple rule engine"
+authors = ["Biagio Distefano <biagiodistefano92@gmail.com>"]
+readme = "README.md"
+license = "CC-BY-NC-SA-4.0"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
