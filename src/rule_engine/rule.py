@@ -4,10 +4,11 @@ import typing as t
 class Rule:
     def __init__(self, *args: "Rule", **conditions: t.Any) -> None:
         self.conditions: t.List[t.Tuple[str, t.Union[dict, "Rule"]]] = []
-        if args:
-            for arg in args:
-                if isinstance(arg, Rule):
-                    self.conditions.append(("AND", arg))
+        for arg in args:
+            if isinstance(arg, Rule):
+                self.conditions.append(("AND", arg))
+            else:
+                raise ValueError("positional arguments must be instances of `Rule`")
         if conditions:
             self.conditions.append(("AND", conditions))
 
