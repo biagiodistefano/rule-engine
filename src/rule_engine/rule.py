@@ -11,6 +11,7 @@ class Rule:
                 raise ValueError("positional arguments must be instances of `Rule`")
         if conditions:
             self.conditions.append(("AND", conditions))
+        self.negated = False
 
     def __and__(self, other: "Rule") -> "Rule":
         if not isinstance(other, Rule):
@@ -22,19 +23,29 @@ class Rule:
         new_rule.conditions.append(("OR", other))
         return new_rule
 
+    def __invert__(self):
+        new_rule = Rule(self)
+        new_rule.negated = not new_rule.negated
+        return new_rule
+
     def _evaluate_condition(self, condition: t.Union[dict, "Rule"], example: t.Dict[str, t.Any]) -> bool:
-        if isinstance(condition, Rule):
-            return condition.evaluate(example)
-        else:
-            for key, value in condition.items():
-                if "__" in key:
-                    field, op = key.split("__", 1)
-                    if not self._evaluate_operator(op, example.get(field, None), value):
-                        return False
-                else:
-                    if key not in example or example[key] != value:
-                        return False
-            return True
+        def _eval() -> bool:
+            if isinstance(condition, Rule):
+                return condition.evaluate(example)
+            else:
+                for key, value in condition.items():
+                    if "__" in key:
+                        field, op = key.split("__", 1)
+                        if not self._evaluate_operator(op, example.get(field, None), value):
+                            return False
+                    else:
+                        if key not in example or example[key] != value:
+                            return False
+                return True
+
+        if self.negated:
+            return not _eval()
+        return _eval()
 
     @staticmethod
     def _evaluate_operator(operator: str, field_value: t.Any, condition_value: t.Any) -> bool:

@@ -5,6 +5,8 @@ r = Rule(Rule(foo="bar") | Rule(foo="baz"), name="John", age__gte=21) | Rule(nam
 example_true = {"foo": "bar", "name": "John", "age": 22}
 print(evaluate(r, example_true))  # True
 
+print(evaluate(~r, example_true))  # False
+
 example_false = {"name": "Jane", "age": 22}
 print(evaluate(r, example_false))  # False
 

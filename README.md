@@ -11,7 +11,10 @@ Supported operators are: `gte`, `lte`, `gt`, `lt`, `ne`, `in`, `contains`, `icon
 
 More can be added if you are bored enough.
 
-The `Rule` object can be combined with `&` (and), `|` (or). Currently, the `~` (not) operator is not supported but it can be added.
+The `Rule` object can be combined with `&` (and), `|` (or).
+
+~~Currently, the `~` (not) operator is not supported but it can be added~~.
+I had an after dinner urge to implement it because it was just a few lines of code.
 
 The `Rule` object can be evaluated with a dictionary of values:
 
