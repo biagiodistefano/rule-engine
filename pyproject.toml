@@ -2,9 +2,12 @@
 name = "rule-engine"
 version = "0.1.0"
 description = "A simple rule engine"
-authors = ["Biagio Distefano <biagiodistefano92@gmail.com>"]
+authors = ["Biagio Distefano <me@biagiodistefano.io>"]
 readme = "README.md"
 license = "CC-BY-NC-SA-4.0"
+packages = [
+    { include = "rule_engine", from = "src" }
+]
 
 [tool.poetry.dependencies]
 python = "^3.12"
