@@ -16,8 +16,8 @@ provided_rule = Rule(
 ) | Rule(revenue__gt=1_000_000)
 
 provided_example = {"credit_rating": 75, "flood_risk": 5, "revenue": 1000}
-
 print(evaluate(provided_rule, provided_example))  # True
+print(provided_rule)
 
 fancy_complex_rule = (
     Rule(

@@ -34,6 +34,16 @@ print(evaluate(r, example_true))  # True
 
 See `src/solution.py` for more examples.
 
+The provided rule in the example would translate to:
+
+```python
+provided_rule = Rule(
+    credit_rating__gt=50,
+    flood_risk__lt=10,
+) | Rule(revenue__gt=1_000_000)
+# Rule(conditions=[('AND', Rule(conditions=[('AND', {'credit_rating__gt': 50, 'flood_risk__lt': 10})], negated=False)), ('OR', Rule(conditions=[('AND', {'revenue__gt': 1000000})], negated=False))], negated=False)
+```
+
 Of course this is not a full-fledged rule engine, so there is very lacking exception handling and error messages.
 
 Ngl, it was fun to write this. I'm gonna use it for something, I'm sure.

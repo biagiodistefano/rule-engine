@@ -99,6 +99,9 @@ class Rule:
 
         return result if result is not None else False
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(conditions={self.conditions}, negated={self.negated})"
+
 
 def evaluate(rule: Rule, example: t.Dict[str, t.Any]) -> bool:
     return rule.evaluate(example)
