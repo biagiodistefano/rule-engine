@@ -36,7 +36,7 @@ fancy_complex_example_false = {"country": "ITA", "revenue": 1_000_000, "complex"
 print(evaluate(fancy_complex_rule, fancy_complex_example_false))  # False
 
 
-fancy_complex_example_2_true = fancy_complex_example_false = {
+fancy_complex_example_2_true = {
     "country": "ITA",
     "revenue": 1_000_000,
     "complex": False,
