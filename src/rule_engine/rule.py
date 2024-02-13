@@ -66,10 +66,8 @@ class Rule:
         elif operator == "endswith":
             return isinstance(field_value, str) and field_value.endswith(condition_value)
         elif operator == "contains":
-            if isinstance(condition_value, str):
+            if hasattr(field_value, "__contains__"):
                 return condition_value in field_value
-            else:
-                return field_value in condition_value
         elif operator == "icontains":
             if isinstance(field_value, str) and isinstance(condition_value, str):
                 return condition_value.lower() in field_value.lower()
