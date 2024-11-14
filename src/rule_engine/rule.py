@@ -1,17 +1,63 @@
+import re
 import typing as t
+from enum import Enum
+from uuid import uuid4
+
+
+class Operator(str, Enum):
+    GTE = "gte"
+    GT = "gt"
+    LTE = "lte"
+    LT = "lt"
+    IN = "in"
+    STARTSWITH = "startswith"
+    ENDSWITH = "endswith"
+    CONTAINS = "contains"
+    ICONTAINS = "icontains"
+    EXACT = "exact"
+    IEXACT = "iexact"
+    NE = "ne"
+    EQ = "eq"
 
 
 class Rule:
-    def __init__(self, *args: "Rule", **conditions: t.Any) -> None:
-        self.conditions: t.List[t.Tuple[str, t.Union[dict, "Rule"]]] = []
+    def __init__(self, *args: "Rule", _id: str | None = None, **conditions: t.Any) -> None:
+        self._id = self._validate_id(_id) if _id is not None else str(uuid4())
+        self._conditions: t.List[t.Tuple[str, t.Union[dict, "Rule"]]] = []
         for arg in args:
             if isinstance(arg, Rule):
-                self.conditions.append(("AND", arg))
+                self._conditions.append(("AND", arg))
             else:
                 raise ValueError("positional arguments must be instances of `Rule`")
         if conditions:
-            self.conditions.append(("AND", conditions))
-        self.negated = False
+            self._conditions.append(("AND", conditions))
+        self._negated = False
+
+    @property
+    def id(self) -> str:
+        return self._id
+
+    def set_id(self, _id: str) -> None:
+        """We don't use a @setter because we want this to be very explicit."""
+        self._validate_id(_id)
+        self._id = _id
+
+    @classmethod
+    def _validate_id(cls, _id: str) -> None:
+        if not isinstance(_id, str):
+            raise ValueError("The ID must be a string")
+        if not re.match(r"^[\w-]{1,64}$", _id, re.IGNORECASE):
+            raise ValueError(
+                "The ID must be <= 64 characters and can only contain letters, numbers, underscores, and hyphens."
+            )
+
+    @property
+    def conditions(self) -> t.List[t.Tuple[str, t.Union[dict, "Rule"]]]:
+        return self._conditions
+
+    @property
+    def negated(self) -> bool:
+        return self._negated
 
     def __and__(self, other: "Rule") -> "Rule":
         if not isinstance(other, Rule):
@@ -27,7 +73,7 @@ class Rule:
 
     def __invert__(self):
         new_rule = Rule(self)
-        new_rule.negated = not new_rule.negated
+        new_rule._negated = not new_rule.negated
         return new_rule
 
     def _evaluate_condition(self, condition: t.Union[dict, "Rule"], example: t.Dict[str, t.Any]) -> bool:
@@ -51,32 +97,32 @@ class Rule:
 
     @staticmethod
     def _evaluate_operator(operator: str, field_value: t.Any, condition_value: t.Any) -> bool:
-        if operator == "gte":
+        if operator == Operator.GTE:
             return field_value >= condition_value
-        elif operator == "gt":
+        elif operator == Operator.GT:
             return field_value > condition_value
-        elif operator == "lte":
+        elif operator == Operator.LTE:
             return field_value <= condition_value
-        elif operator == "lt":
+        elif operator == Operator.LT:
             return field_value < condition_value
-        elif operator == "in":
+        elif operator == Operator.IN:
             return field_value in condition_value
-        elif operator == "startswith":
+        elif operator == Operator.STARTSWITH:
             return isinstance(field_value, str) and field_value.startswith(condition_value)
-        elif operator == "endswith":
+        elif operator == Operator.STARTSWITH:
             return isinstance(field_value, str) and field_value.endswith(condition_value)
-        elif operator == "contains":
+        elif operator == Operator.CONTAINS:
             if hasattr(field_value, "__contains__"):
                 return condition_value in field_value
-        elif operator == "icontains":
+        elif operator == Operator.ICONTAINS:
             if isinstance(field_value, str) and isinstance(condition_value, str):
                 return condition_value.lower() in field_value.lower()
-        elif operator == "exact":  # a bit redundant, but it's here for clarity
+        elif operator in (Operator.EXACT, Operator.EQ):  # a bit redundant, but it's here for clarity
             return field_value == condition_value
-        elif operator == "iexact":
+        elif operator == Operator.IEXACT:
             if isinstance(field_value, str) and isinstance(condition_value, str):
                 return field_value.lower() == condition_value.lower()
-        elif operator == "ne":
+        elif operator == Operator.NE:
             return field_value != condition_value
         return False
 

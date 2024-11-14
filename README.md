@@ -11,12 +11,9 @@ Supported operators are: `gte`, `lte`, `gt`, `lt`, `ne`, `in`, `contains`, `icon
 
 More can be added if you are bored enough.
 
-The `Rule` object can be combined with `&` (and), `|` (or).
+The `Rule` object can be combined with `&` (and), `|` (or). It can be negated with `~` (not).
 
-~~Currently, the `~` (not) operator is not supported but it can be added~~.
-I had an after dinner urge to implement it because it was just a few lines of code.
-
-The `Rule` object can be evaluated with a dictionary of values:
+The `Rule` object can be evaluated against a dictionary of values:
 
 ```python
 from rule_engine import Rule, evaluate
@@ -44,6 +41,8 @@ provided_rule = Rule(
 # Rule(conditions=[('AND', Rule(conditions=[('AND', {'credit_rating__gt': 50, 'flood_risk__lt': 10})], negated=False)), ('OR', Rule(conditions=[('AND', {'revenue__gt': 1000000})], negated=False))], negated=False)
 ```
 
-Of course this is not a full-fledged rule engine, so there is very lacking exception handling and error messages.
-
-Ngl, it was fun to write this. I'm gonna use it for something, I'm sure.
+## TODOs:
+- [ ] Add more operators
+- [ ] Add lambda operators
+- [ ] Add tests
+- [ ] Add CI/CD
