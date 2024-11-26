@@ -26,5 +26,7 @@ jobs:
       - name: Build package
         run: |
           poetry build
-      - name: Publish package distributions to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Publish to PyPI
+        env:
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: poetry publish --username __token__ --password $PYPI_TOKEN
