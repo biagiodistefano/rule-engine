@@ -48,7 +48,13 @@ print(evaluate(rule, example_false))  # False
 ## Installation
 
 ```bash
-pip install rule-engine
+pip install light-rule-engine
+```
+```bash
+poetry add light-rule-engine
+```
+```bash
+uv add light-rule-engine
 ```
 
 ## Supported Operators
