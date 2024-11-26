@@ -3,13 +3,16 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://opensource.org/licenses/MIT)
 [![Build](https://github.com/biagiodistefano/rule-engine/actions/workflows/main.yaml/badge.svg?branch=main)](https://github.com/biagiodistefano/rule-engine/actions/workflows/main.yaml)
 [![codecov](https://codecov.io/github/biagiodistefano/rule-engine/graph/badge.svg?token=7G7X642DX0)](https://codecov.io/github/biagiodistefano/rule-engine)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/light-rule-engine)
+![PyPI - Version](https://img.shields.io/pypi/v/light-rule-engine)
+
 
 The **Simple Rule Engine** is a lightweight library for creating, combining, and evaluating (nested) rules. Inspired by Django's `Q` object, it allows you to construct complex logical conditions and evaluate them against dictionaries of data.
 
 ## Quickstart
 
 ```
-pip install rule_engine
+pip install light-rule-engine
 ```
 
 ```python
