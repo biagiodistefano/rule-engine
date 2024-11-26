@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "rule-engine"
+name = "light-rule-engine"
 version = "0.1.0"
 description = "A simple rule engine"
 authors = ["Biagio Distefano <me@biagiodistefano.io>"]
