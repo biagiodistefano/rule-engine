@@ -1,1 +1,3 @@
-from .rule import Rule, evaluate  # noqa: F401
+from .rule import Rule, evaluate
+
+__all__ = ["Rule", "evaluate"]

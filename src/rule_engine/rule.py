@@ -1,6 +1,7 @@
 import re
 import typing as t
 from enum import Enum
+from functools import partial
 from uuid import uuid4
 
 
@@ -10,34 +11,102 @@ class Operator(str, Enum):
     LTE = "lte"
     LT = "lt"
     IN = "in"
+    NIN = "nin"
     STARTSWITH = "startswith"
+    ISTARTSWITH = "istartswith"
     ENDSWITH = "endswith"
+    IENDSWITH = "iendswith"
     CONTAINS = "contains"
     ICONTAINS = "icontains"
     EXACT = "exact"
     IEXACT = "iexact"
+    IS = "is"
     NE = "ne"
     EQ = "eq"
+    REGEX = "regex"
+    FUNC = "func"
+
+
+AND, OR = "AND", "OR"
+
+
+def _startswith(field_value: t.Any, condition_value: t.Any, case_insensitive: bool = False) -> bool:
+    if isinstance(field_value, str) and isinstance(condition_value, str):
+        if case_insensitive:
+            return field_value.lower().startswith(condition_value.lower())
+        return field_value.startswith(condition_value)
+    raise ValueError("The value for the `STARTSWITH` operator must be a string.")
+
+
+def _endswith(field_value: t.Any, condition_value: t.Any, case_insensitive: bool = False) -> bool:
+    if isinstance(field_value, str) and isinstance(condition_value, str):
+        if case_insensitive:
+            return field_value.lower().endswith(condition_value.lower())
+        return field_value.endswith(condition_value)
+    raise ValueError("The value for the `ENDSWITH` operator must be a string.")
+
+
+def _contains(field_value: t.Any, condition_value: t.Any, case_insensitive: bool = False) -> bool:
+    if isinstance(field_value, str) and isinstance(condition_value, str):
+        if case_insensitive:
+            return condition_value.lower() in field_value.lower()
+    return condition_value in field_value
+
+
+def _regex(field_value: t.Any, pattern: t.Any) -> bool:
+    if isinstance(field_value, str) and isinstance(pattern, (str, re.Pattern)):
+        return bool(re.match(pattern, field_value))
+    raise ValueError("The value for the `REGEX` operator must be a string or a compiled regex pattern.")
+
+
+def _func(field_value: t.Any, func: t.Callable[[t.Any], bool]) -> bool:
+    if callable(func):
+        return func(field_value)
+    raise ValueError("The value for the `FUNC` operator must be a callable.")
+
+
+OPERATOR_FUNCTIONS: t.Dict[str, t.Callable[..., bool]] = {
+    Operator.GTE: lambda fv, cv: fv >= cv,
+    Operator.GT: lambda fv, cv: fv > cv,
+    Operator.LTE: lambda fv, cv: fv <= cv,
+    Operator.LT: lambda fv, cv: fv < cv,
+    Operator.IN: lambda fv, cv: fv in cv,
+    Operator.NIN: lambda fv, cv: fv not in cv,
+    Operator.STARTSWITH: partial(_startswith, case_insensitive=False),
+    Operator.ISTARTSWITH: partial(_startswith, case_insensitive=True),
+    Operator.ENDSWITH: partial(_endswith, case_insensitive=False),
+    Operator.IENDSWITH: partial(_endswith, case_insensitive=True),
+    Operator.CONTAINS: partial(_contains, case_insensitive=False),
+    Operator.ICONTAINS: partial(_contains, case_insensitive=True),
+    Operator.EXACT: lambda fv, cv: fv == cv,
+    Operator.IS: lambda fv, cv: fv is cv,
+    Operator.IEXACT: lambda fv, cv: isinstance(fv, str) and isinstance(cv, str) and fv.lower() == cv.lower(),
+    Operator.NE: lambda fv, cv: fv != cv,
+    Operator.EQ: lambda fv, cv: fv == cv,
+    Operator.REGEX: _regex,
+    Operator.FUNC: _func,
+}
 
 
 class Rule:
-    def __init__(self, *args: "Rule", _id: str | None = None, **conditions: t.Any) -> None:
-        self._id = self._validate_id(_id) if _id is not None else str(uuid4())
-        self._conditions: t.List[t.Tuple[str, t.Union[dict, "Rule"]]] = []
+    def __init__(self, *args: "Rule", **conditions: t.Any) -> None:
+        self._id = str(uuid4())
+        self._conditions: t.List[t.Tuple[str, t.Union[dict[str, t.Any], "Rule"]]] = []
         for arg in args:
             if isinstance(arg, Rule):
-                self._conditions.append(("AND", arg))
+                self._conditions.append((AND, arg))
             else:
                 raise ValueError("positional arguments must be instances of `Rule`")
         if conditions:
-            self._conditions.append(("AND", conditions))
+            self._conditions.append((AND, conditions))
         self._negated = False
 
     @property
     def id(self) -> str:
         return self._id
 
-    def set_id(self, _id: str) -> None:
+    @id.setter
+    def id(self, _id: str) -> None:
         """We don't use a @setter because we want this to be very explicit."""
         self._validate_id(_id)
         self._id = _id
@@ -52,7 +121,7 @@ class Rule:
             )
 
     @property
-    def conditions(self) -> t.List[t.Tuple[str, t.Union[dict, "Rule"]]]:
+    def conditions(self) -> t.List[t.Tuple[str, t.Union[dict[str, t.Any], "Rule"]]]:
         return self._conditions
 
     @property
@@ -71,17 +140,18 @@ class Rule:
         new_rule.conditions.append(("OR", other))
         return new_rule
 
-    def __invert__(self):
+    def __invert__(self) -> "Rule":
         new_rule = Rule(self)
         new_rule._negated = not new_rule.negated
         return new_rule
 
-    def _evaluate_condition(self, condition: t.Union[dict, "Rule"], example: t.Dict[str, t.Any]) -> bool:
+    def _evaluate_condition(self, condition: t.Union[dict[str, t.Any], "Rule"], example: t.Dict[str, t.Any]) -> bool:
         def _eval() -> bool:
             if isinstance(condition, Rule):
                 return condition.evaluate(example)
             else:
                 for key, value in condition.items():
+                    print(key, value)
                     if "__" in key:
                         field, op = key.split("__", 1)
                         if not self._evaluate_operator(op, example.get(field, None), value):
@@ -97,34 +167,10 @@ class Rule:
 
     @staticmethod
     def _evaluate_operator(operator: str, field_value: t.Any, condition_value: t.Any) -> bool:
-        if operator == Operator.GTE:
-            return field_value >= condition_value
-        elif operator == Operator.GT:
-            return field_value > condition_value
-        elif operator == Operator.LTE:
-            return field_value <= condition_value
-        elif operator == Operator.LT:
-            return field_value < condition_value
-        elif operator == Operator.IN:
-            return field_value in condition_value
-        elif operator == Operator.STARTSWITH:
-            return isinstance(field_value, str) and field_value.startswith(condition_value)
-        elif operator == Operator.STARTSWITH:
-            return isinstance(field_value, str) and field_value.endswith(condition_value)
-        elif operator == Operator.CONTAINS:
-            if hasattr(field_value, "__contains__"):
-                return condition_value in field_value
-        elif operator == Operator.ICONTAINS:
-            if isinstance(field_value, str) and isinstance(condition_value, str):
-                return condition_value.lower() in field_value.lower()
-        elif operator in (Operator.EXACT, Operator.EQ):  # a bit redundant, but it's here for clarity
-            return field_value == condition_value
-        elif operator == Operator.IEXACT:
-            if isinstance(field_value, str) and isinstance(condition_value, str):
-                return field_value.lower() == condition_value.lower()
-        elif operator == Operator.NE:
-            return field_value != condition_value
-        return False
+        """Evaluate an operator with the given field and condition values."""
+        if operator in OPERATOR_FUNCTIONS:
+            return OPERATOR_FUNCTIONS[operator](field_value, condition_value)
+        raise ValueError(f"Unsupported operator: {operator}")
 
     def evaluate(self, example: t.Dict[str, t.Any]) -> bool:
         if not self.conditions:
@@ -134,12 +180,12 @@ class Rule:
         for op, condition in self.conditions:
             if result is None:
                 result = self._evaluate_condition(condition, example)
-            elif op == "AND":
+            elif op == AND:  # type: ignore[unreachable]
                 result = result and self._evaluate_condition(condition, example)
-            elif op == "OR":
+            elif op == OR:
                 result = result or self._evaluate_condition(condition, example)
-            else:
-                raise ValueError(f"I REALLY should not be here. Unknown operator: {op}")
+            else:  # pragma: no cover
+                raise t.assert_never(f"I REALLY should not be here. Unknown operator: {op}")
 
         return result if result is not None else False
 

@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "A simple rule engine"
 authors = ["Biagio Distefano <me@biagiodistefano.io>"]
 readme = "README.md"
-license = "CC-BY-NC-SA-4.0"
+license = "MIT"
 packages = [
     { include = "rule_engine", from = "src" }
 ]
@@ -17,19 +17,14 @@ python = "^3.12"
 mypy = "^1.8.0"
 ruff = "^0.2.1"
 pre-commit = "^3.6.1"
+pytest = "^8.3.3"
+pytest-cov = "^6.0.0"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
-# Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
-lint.select = ["E", "F", "I", "W"]
-lint.ignore = ["I001"]
-
-# Allow autofix for all enabled rules (when `--fix`) is provided.
-lint.fixable = ["A", "B", "C", "D", "E", "F", "G", "I", "N", "Q", "S", "T", "W", "ANN", "ARG", "BLE", "COM", "DJ", "DTZ", "EM", "ERA", "EXE", "FBT", "ICN", "INP", "ISC", "NPY", "PD", "PGH", "PIE", "PL", "PT", "PTH", "PYI", "RET", "RSE", "RUF", "SIM", "SLF", "TCH", "TID", "TRY", "UP", "YTT"]
-lint.unfixable = []
 
 # Exclude a variety of commonly ignored directories.
 exclude = [
@@ -50,22 +45,50 @@ exclude = [
     "__pypackages__",
     "_build",
     "buck-out",
-    "build",
     "dist",
     "node_modules",
     "venv",
     "playground.py",
+    "*/migrations/*"
 ]
 
 # Same as Black.
 line-length = 120
 
-# Allow unused variables when underscore-prefixed.
-lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
-
-# Assume Python 3.12.
 target-version = "py312"
+
+[tool.ruff.lint]
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+fixable = ["A", "B", "C", "D", "E", "F", "G", "I", "N", "Q", "S", "T", "W", "ANN", "ARG", "BLE", "COM", "DJ", "DTZ", "EM", "ERA", "EXE", "FBT", "ICN", "INP", "ISC", "NPY", "PD", "PGH", "PIE", "PL", "PT", "PTH", "PYI", "RET", "RSE", "RUF", "SIM", "SLF", "TCH", "TID", "TRY", "UP", "YTT"]
+select = ["E", "F", "I", "W"]
+extend-select = ["I", "W", "E"]
+unfixable = []
+
+[tool.ruff.lint.per-file-ignores]
+"**/migrations/*.py" = ["D"]
+"**/tests/*.py" = ["D"]
+"**/admin.py" = ["D102"]
+"conftest.py" = ["D"]
 
 [tool.ruff.lint.mccabe]
 # Unlike Flake8, default to a complexity level of 10.
 max-complexity = 10
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+
+# Like Black, use double quotes for strings.
+quote-style = "double"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
