@@ -1,5 +1,8 @@
 # Simple Rule Engine in Pure Python
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://opensource.org/licenses/MIT)
+![Build](https://github.com/biagiodistefano/rule-engine/actions/workflows/test.yml/badge.svg)
+
 The **Simple Rule Engine** is a lightweight library for creating, combining, and evaluating (nested) rules. Inspired by Django's `Q` object, it allows you to construct complex logical conditions and evaluate them against dictionaries of data.
 
 ## Quickstart
@@ -183,7 +186,7 @@ print(evaluate(rule, data))  # False
 Contributions are welcome! For feature requests, bug reports, or questions, please open an issue on GitHub.
 
 ## License
-This project is licensed under the MIT License.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgements
 This project was inspired by **Django's awesome** `Q` object and the need for a simple rule engine in Python.
