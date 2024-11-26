@@ -3,7 +3,7 @@ name: Test and Upload Coverage
 on:
   push:
     branches:
-      - '**'  # Trigger on push to all branches
+      - "main"  # I'm a god, I can push to main
   pull_request:
     types: [opened, synchronize, reopened]
 
