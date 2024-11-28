@@ -1,3 +1,4 @@
+import json
 import re
 import typing as t
 from enum import Enum
@@ -24,7 +25,7 @@ class Operator(str, Enum):
     NE = "ne"
     EQ = "eq"
     REGEX = "regex"
-    FUNC = "func"
+    # FUNC = "func"
 
 
 AND, OR = "AND", "OR"
@@ -59,7 +60,7 @@ def _regex(field_value: t.Any, pattern: t.Any) -> bool:
     raise ValueError("The value for the `REGEX` operator must be a string or a compiled regex pattern.")
 
 
-def _func(field_value: t.Any, func: t.Callable[[t.Any], bool]) -> bool:
+def _func(field_value: t.Any, func: t.Callable[[t.Any], bool]) -> bool:  # pragma: no cover
     if callable(func):
         return func(field_value)
     raise ValueError("The value for the `FUNC` operator must be a callable.")
@@ -84,7 +85,7 @@ OPERATOR_FUNCTIONS: t.Dict[str, t.Callable[..., bool]] = {
     Operator.NE: lambda fv, cv: fv != cv,
     Operator.EQ: lambda fv, cv: fv == cv,
     Operator.REGEX: _regex,
-    Operator.FUNC: _func,
+    # Operator.FUNC: _func,
 }
 
 
@@ -151,13 +152,12 @@ class Rule:
                 return condition.evaluate(example)
             else:
                 for key, value in condition.items():
-                    print(key, value)
                     if "__" in key:
                         field, op = key.split("__", 1)
                         if not self._evaluate_operator(op, example.get(field, None), value):
                             return False
                     else:
-                        if key not in example or example[key] != value:
+                        if not self._evaluate_operator("eq", example.get(key, None), value):
                             return False
                 return True
 
@@ -188,6 +188,42 @@ class Rule:
                 raise t.assert_never(f"I REALLY should not be here. Unknown operator: {op}")
 
         return result if result is not None else False
+
+    def to_dict(self) -> dict[str, t.Any]:
+        return {
+            "$rule": True,
+            "id": self.id,
+            "negated": self.negated,
+            "conditions": [
+                {"operator": op, "condition": cond.to_dict() if isinstance(cond, Rule) else cond}
+                for op, cond in self.conditions
+            ],
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, t.Any]) -> "Rule":
+        rule = cls()
+        if not data.get("$rule"):
+            raise ValueError("Invalid rule data")
+        rule._id = data["id"]
+        rule._negated = data["negated"]
+        for cond in data["conditions"]:
+            operator = cond["operator"]
+            condition = cond["condition"]
+            if isinstance(condition, dict) and condition.get("$rule"):
+                condition = cls.from_dict(condition)
+            rule.conditions.append((operator, condition))
+        return rule
+
+    def to_json(self, *args: t.Any, **kwargs: t.Any) -> str:
+        """Serialize the Rule to a JSON string."""
+        return json.dumps(self.to_dict(), *args, **kwargs)
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "Rule":
+        """Deserialize a Rule from a JSON string."""
+        data = json.loads(json_str)
+        return cls.from_dict(data)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(conditions={self.conditions}, negated={self.negated})"

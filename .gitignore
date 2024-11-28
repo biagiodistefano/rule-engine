@@ -134,6 +134,7 @@ dmypy.json
 *.sqlite3
 /src/static
 /src/deployments.info
+/src/playground.py
 /src/media/
 server_setup/
 
