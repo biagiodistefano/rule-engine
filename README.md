@@ -153,23 +153,6 @@ assert not evaluate(rule, example_false)
 You can extend the rule engine by adding new operators.
 Use the func operator for custom logic, or modify the `OPERATOR_FUNCTIONS` dictionary for persistent custom operators.
 
-Example with func:
-    
-```python
-from rule_engine import Rule
-
-# Custom condition: Check if a value is a palindrome
-is_palindrome = lambda x: str(x) == str(x)[::-1]
-
-rule = Rule(word__func=is_palindrome)
-
-example_true = {"word": "radar"}
-example_false = {"word": "hello"}
-
-assert rule.evaluate(example_true)
-assert not rule.evaluate(example_false)
-```
-
 ## Full example
 
 ```python
