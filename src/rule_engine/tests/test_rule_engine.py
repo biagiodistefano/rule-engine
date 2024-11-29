@@ -2,7 +2,7 @@ import typing as t
 
 import pytest
 
-from rule_engine.rule import OPERATOR_FUNCTIONS, Operator, Rule, evaluate
+from rule_engine.rule import OPERATOR_FUNCTIONS, EvaluationResult, Operator, Rule, evaluate
 
 
 @pytest.mark.parametrize(
@@ -75,7 +75,7 @@ def test_operator_evaluation_value_error(operator: str, field_value: t.Any, cond
 )
 def test_simple_rule_evaluation(conditions: dict[str, t.Any], example: dict[str, t.Any], expected: bool) -> None:
     rule = Rule(**conditions)
-    assert evaluate(rule, example) == expected
+    assert bool(evaluate(rule, example)) is expected
 
 
 def test_nested_rules() -> None:
@@ -93,8 +93,8 @@ def test_negation() -> None:
     rule = ~Rule(name="John")
     example_true = {"name": "Jane"}
     example_false = {"name": "John"}
-    assert evaluate(rule, example_true) is True
-    assert evaluate(rule, example_false) is False
+    assert evaluate(rule, example_true)
+    assert not evaluate(rule, example_false)
 
 
 def test_invalid_rule_construction() -> None:
@@ -113,9 +113,9 @@ def test_combined_rules() -> None:
     example_false_and = {"name": "Jane", "age": 22}
     example_true_or = {"name": "Jane", "age": 22}
 
-    assert evaluate(combined_and, example_true_and) is True
-    assert evaluate(combined_and, example_false_and) is False
-    assert evaluate(combined_or, example_true_or) is True
+    assert evaluate(combined_and, example_true_and)
+    assert not evaluate(combined_and, example_false_and)
+    assert evaluate(combined_or, example_true_or)
 
 
 @pytest.mark.parametrize(
@@ -189,3 +189,25 @@ def test_to_load_rule_invalid() -> None:
     rule_json.pop("$rule")
     with pytest.raises(ValueError):
         Rule.from_dict(rule_json)
+
+
+def test_res_and_value_error() -> None:
+    result = EvaluationResult()
+    with pytest.raises(ValueError):
+        result & "invalid_res"  # type: ignore[operator]
+
+
+def test_res_or_value_error() -> None:
+    result = EvaluationResult()
+    with pytest.raises(ValueError):
+        result | "invalid_res"  # type: ignore[operator]
+
+
+def test_result_to_json() -> None:
+    rule = Rule(name="John") & Rule(age__gte=21) | Rule(name="Jane")
+    example = {"name": "John", "age": 22}
+    res = evaluate(rule, example)
+    assert (
+        res.to_json()
+        == """{"field": "name", "value": "John", "operator": "eq", "condition_value": "John", "result": true, "negated": false, "children": [["AND", {"field": "age", "value": 22, "operator": "gte", "condition_value": 21, "result": true, "negated": false, "children": []}], ["OR", {"field": "name", "value": "John", "operator": "eq", "condition_value": "Jane", "result": false, "negated": false, "children": []}]]}"""  # noqa: E501
+    )

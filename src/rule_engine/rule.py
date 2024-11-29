@@ -91,12 +91,72 @@ OPERATOR_FUNCTIONS: t.Dict[str, t.Callable[..., bool]] = {
 }
 
 
-class Result(t.TypedDict):
-    field: str
+class EvaluationResultDict(t.TypedDict):
+    field: str | None
     value: t.Any
-    operator: str
+    operator: str | None
     condition_value: t.Any
     result: bool
+    negated: bool
+    children: list[tuple[_OP, "EvaluationResultDict"]]
+
+
+class EvaluationResult:
+    def __init__(
+        self,
+        field: str | None = None,
+        value: t.Any = None,
+        operator: str | None = None,
+        condition_value: t.Any = None,
+        result: bool = True,
+        negated: bool = False,
+    ):
+        self.field = field
+        self.value = value
+        self.operator = operator
+        self.condition_value = condition_value
+        self.result = result
+        self.children: list[tuple[_OP, "EvaluationResult"]] = []
+        self.negated = negated
+
+    def __bool__(self) -> bool:
+        """Evaluate the result as a boolean, considering negation."""
+        if self.children:
+            and_combined = all(child[1] for child in self.children if child[0] == AND)
+            or_combined = any(child[1] for child in self.children if child[0] == OR)
+            res = (self.result and and_combined) or or_combined
+            return not res if self.negated else res
+        return not self.result if self.negated else self.result
+
+    def __and__(self, other: "EvaluationResult") -> "EvaluationResult":
+        if not isinstance(other, EvaluationResult):
+            raise ValueError("Operands must be EvaluationResult instances")
+        self.children.append((AND, other))
+        return self
+
+    def __or__(self, other: "EvaluationResult") -> "EvaluationResult":
+        if not isinstance(other, EvaluationResult):
+            raise ValueError("Operands must be EvaluationResult instances")
+        self.children.append((OR, other))
+        return self
+
+    def to_dict(self) -> EvaluationResultDict:
+        return EvaluationResultDict(
+            field=self.field,
+            value=self.value,
+            operator=self.operator,
+            condition_value=self.condition_value,
+            result=self.result,
+            negated=self.negated,
+            children=[(op, child.to_dict()) for op, child in self.children],
+        )
+
+    def to_json(self, *args: t.Any, **kwargs: t.Any) -> str:
+        """Serialize the EvaluationResult to a JSON string."""
+        return json.dumps(self.to_dict(), *args, **kwargs)
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"EvaluationResult(result={bool(self)}, children={len(self.children)})"
 
 
 class Rule:
@@ -111,7 +171,6 @@ class Rule:
         if conditions:
             self._conditions.append((AND, conditions))
         self._negated = False
-        self._results: list[Result] = []
 
     @property
     def id(self) -> str:
@@ -157,27 +216,37 @@ class Rule:
         new_rule._negated = not new_rule.negated
         return new_rule
 
-    def _evaluate_condition(self, condition: t.Union[dict[str, t.Any], "Rule"], example: t.Dict[str, t.Any]) -> bool:
-        def _eval() -> bool:
-            results: list[Result] = []
-            if isinstance(condition, Rule):
-                return condition.evaluate(example)
-            for key, condition_value in condition.items():
-                if "__" in key:
-                    field, op = key.split("__", 1)
-                else:
-                    field, op = key, "eq"
-                value = example.get(field, None)
-                result = self._evaluate_operator(op, value, condition_value)
-                results.append(
-                    Result(field=field, value=value, operator=op, condition_value=condition_value, result=result)
-                )
-            self._results.extend(results)
-            return all(result["result"] for result in results)
+    def _evaluate_condition(
+        self, condition: t.Union[dict[str, t.Any], "Rule"], example: t.Dict[str, t.Any]
+    ) -> EvaluationResult:
+        if isinstance(condition, Rule):
+            return condition.evaluate(example)
 
-        if self.negated:
-            return not _eval()
-        return _eval()
+        results = []
+        for key, condition_value in condition.items():
+            if "__" in key:
+                field, operator = key.split("__", 1)
+            else:
+                field, operator = key, "eq"
+
+            # Evaluate the operator with the example value
+            field_value = example.get(field, None)
+            result = self._evaluate_operator(operator, field_value, condition_value)
+            results.append(
+                EvaluationResult(
+                    field=field,
+                    value=field_value,
+                    operator=operator,
+                    condition_value=condition_value,
+                    result=result,
+                )
+            )
+
+        # Combine results using AND logic for all conditions in the dictionary
+        combined_result = results[0]
+        for res in results[1:]:
+            combined_result = combined_result & res
+        return combined_result
 
     @staticmethod
     def _evaluate_operator(operator: str, field_value: t.Any, condition_value: t.Any) -> bool:
@@ -186,22 +255,25 @@ class Rule:
             return OPERATOR_FUNCTIONS[operator](field_value, condition_value)
         raise ValueError(f"Unsupported operator: {operator}")
 
-    def evaluate(self, example: t.Dict[str, t.Any]) -> bool:
+    def evaluate(self, example: t.Dict[str, t.Any]) -> EvaluationResult:
         if not self.conditions:
-            return True
+            return EvaluationResult(result=True)
 
-        result = None
+        combined_result: EvaluationResult | None = None
+
         for op, condition in self.conditions:
-            if result is None:
-                result = self._evaluate_condition(condition, example)
-            elif op == AND:  # type: ignore[unreachable]
-                result = result and self._evaluate_condition(condition, example)
+            child_result = self._evaluate_condition(condition, example)
+            if combined_result is None:
+                combined_result = child_result
+            elif op == AND:
+                combined_result = combined_result & child_result
             elif op == OR:
-                result = result or self._evaluate_condition(condition, example)
+                combined_result = combined_result | child_result
             else:  # pragma: no cover
-                raise t.assert_never(f"I REALLY should not be here. Unknown operator: {op}")
+                raise ValueError(f"We should never get here: {op}")
 
-        return result if result is not None else False
+        combined_result.negated = self.negated  # type: ignore[union-attr]
+        return t.cast(EvaluationResult, combined_result)
 
     def to_dict(self) -> dict[str, t.Any]:
         return {
@@ -212,7 +284,6 @@ class Rule:
                 {"operator": op, "condition": cond.to_dict() if isinstance(cond, Rule) else cond}
                 for op, cond in self.conditions
             ],
-            "results": self._results,
         }
 
     @classmethod
@@ -244,5 +315,5 @@ class Rule:
         return f"{self.__class__.__name__}(conditions={self.conditions}, negated={self.negated})"
 
 
-def evaluate(rule: Rule, example: t.Dict[str, t.Any]) -> bool:
+def evaluate(rule: Rule, example: t.Dict[str, t.Any]) -> EvaluationResult:
     return rule.evaluate(example)

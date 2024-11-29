@@ -27,8 +27,8 @@ rule = Rule(
 example_true = {"foo": "bar", "name": "John", "age": 22}
 example_false = {"foo": "qux", "name": "Jane", "age": 19}
 
-print(evaluate(rule, example_true))  # True
-print(evaluate(rule, example_false))  # False
+assert evaluate(rule, example_true)
+assert not evaluate(rule, example_false)
 ```
 
 
@@ -78,7 +78,6 @@ uv add light-rule-engine
 | `ne`             | Not equal                                                                     |
 | `eq`             | Equal to                                                                      |
 | `regex`          | Matches a regular expression pattern                                          |
-| `func`           | Custom callable that evaluates the condition (must return a boolean)          |
 | `is`             | Identity comparison (evaluates with `is`)                                     |
 
 ---
@@ -143,8 +142,8 @@ rule = Rule(
 example_true = {"foo": "bar", "name": "John", "age": 22}
 example_false = {"foo": "qux", "name": "Jane", "age": 19}
 
-print(evaluate(rule, example_true))  # True
-print(evaluate(rule, example_false))  # False
+assert evaluate(rule, example_true)
+assert not evaluate(rule, example_false)
 ```
 
 ## Advanced Usage
@@ -167,8 +166,8 @@ rule = Rule(word__func=is_palindrome)
 example_true = {"word": "radar"}
 example_false = {"word": "hello"}
 
-print(rule.evaluate(example_true))  # True
-print(rule.evaluate(example_false))  # False
+assert rule.evaluate(example_true)
+assert not rule.evaluate(example_false)
 ```
 
 ## Full example
@@ -183,13 +182,67 @@ rule = Rule(
 )
 
 data = {"credit_rating": 55, "flood_risk": 5}
-print(evaluate(rule, data))  # True
+assert evaluate(rule, data)
 
 data = {"revenue": 1_500_000}
-print(evaluate(rule, data))  # True
+assert evaluate(rule, data)
 
 data = {"credit_rating": 40, "flood_risk": 15, "revenue": 500_000}
-print(evaluate(rule, data))  # False
+assert not evaluate(rule, data)
+```
+
+## The EvaluationResult object
+
+The `evaluate` function returns an `EvaluationResult` object that contains the result of the evaluation and the rule that was evaluated.
+
+It contains a granular representation of the evaluation process, including the result of each condition and the final result.
+
+```python
+from rule_engine import Rule, evaluate
+
+rule = Rule(name="John") & Rule(age__gte=21) | Rule(name="Jane")
+example = {"name": "John", "age": 22}
+res = evaluate(rule, example)
+
+print(bool(res))  # True
+print(res.to_json(indent=2))  # to_dict() also available
+
+"""
+{
+  "field": "name",
+  "value": "John",
+  "operator": "eq",
+  "condition_value": "John",
+  "result": true,
+  "negated": false,
+  "children": [
+    [
+      "AND",
+      {
+        "field": "age",
+        "value": 22,
+        "operator": "gte",
+        "condition_value": 21,
+        "result": true,
+        "negated": false,
+        "children": []
+      }
+    ],
+    [
+      "OR",
+      {
+        "field": "name",
+        "value": "John",
+        "operator": "eq",
+        "condition_value": "Jane",
+        "result": false,
+        "negated": false,
+        "children": []
+      }
+    ]
+  ]
+}
+"""
 ```
 
 ## Contributing
