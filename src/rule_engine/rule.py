@@ -28,7 +28,9 @@ class Operator(str, Enum):
     # FUNC = "func"
 
 
-AND, OR = "AND", "OR"
+AND: t.Literal["AND"] = "AND"
+OR: t.Literal["OR"] = "OR"
+_OP = t.Literal["AND", "OR"]
 
 
 def _startswith(field_value: t.Any, condition_value: t.Any, case_insensitive: bool = False) -> bool:
@@ -89,10 +91,18 @@ OPERATOR_FUNCTIONS: t.Dict[str, t.Callable[..., bool]] = {
 }
 
 
+class Result(t.TypedDict):
+    field: str
+    value: t.Any
+    operator: str
+    condition_value: t.Any
+    result: bool
+
+
 class Rule:
     def __init__(self, *args: "Rule", **conditions: t.Any) -> None:
         self._id = str(uuid4())
-        self._conditions: t.List[t.Tuple[str, t.Union[dict[str, t.Any], "Rule"]]] = []
+        self._conditions: list[tuple[_OP, t.Union[dict[str, t.Any], "Rule"]]] = []
         for arg in args:
             if isinstance(arg, Rule):
                 self._conditions.append((AND, arg))
@@ -101,6 +111,7 @@ class Rule:
         if conditions:
             self._conditions.append((AND, conditions))
         self._negated = False
+        self._results: list[Result] = []
 
     @property
     def id(self) -> str:
@@ -122,7 +133,7 @@ class Rule:
             )
 
     @property
-    def conditions(self) -> t.List[t.Tuple[str, t.Union[dict[str, t.Any], "Rule"]]]:
+    def conditions(self) -> list[tuple[_OP, t.Union[dict[str, t.Any], "Rule"]]]:
         return self._conditions
 
     @property
@@ -148,18 +159,21 @@ class Rule:
 
     def _evaluate_condition(self, condition: t.Union[dict[str, t.Any], "Rule"], example: t.Dict[str, t.Any]) -> bool:
         def _eval() -> bool:
+            results: list[Result] = []
             if isinstance(condition, Rule):
                 return condition.evaluate(example)
-            else:
-                for key, value in condition.items():
-                    if "__" in key:
-                        field, op = key.split("__", 1)
-                        if not self._evaluate_operator(op, example.get(field, None), value):
-                            return False
-                    else:
-                        if not self._evaluate_operator("eq", example.get(key, None), value):
-                            return False
-                return True
+            for key, condition_value in condition.items():
+                if "__" in key:
+                    field, op = key.split("__", 1)
+                else:
+                    field, op = key, "eq"
+                value = example.get(field, None)
+                result = self._evaluate_operator(op, value, condition_value)
+                results.append(
+                    Result(field=field, value=value, operator=op, condition_value=condition_value, result=result)
+                )
+            self._results.extend(results)
+            return all(result["result"] for result in results)
 
         if self.negated:
             return not _eval()
@@ -198,6 +212,7 @@ class Rule:
                 {"operator": op, "condition": cond.to_dict() if isinstance(cond, Rule) else cond}
                 for op, cond in self.conditions
             ],
+            "results": self._results,
         }
 
     @classmethod
