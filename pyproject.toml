@@ -6,14 +6,12 @@ authors = ["Biagio Distefano <me@biagiodistefano.io>"]
 readme = "README.md"
 license = "MIT"
 packages = [
-    { include = "rule_engine", from = "src" }
+    { include = "rule_engine", from = "src" },
+    { include = "rule_engine/py.typed", from = "src" }
 ]
 
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
-
-[tool.poetry.package]
-include = ["py.typed"]
 
 
 [tool.poetry.group.dev.dependencies]
