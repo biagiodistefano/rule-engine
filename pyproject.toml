@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "light-rule-engine"
-version = "0.2.1"
+version = "0.3.0"
 description = "A simple rule engine"
 authors = ["Biagio Distefano <me@biagiodistefano.io>"]
 readme = "README.md"
@@ -11,6 +11,9 @@ packages = [
 
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
+
+[tool.poetry.package]
+include = ["py.typed"]
 
 
 [tool.poetry.group.dev.dependencies]

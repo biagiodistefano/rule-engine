@@ -59,26 +59,28 @@ uv add light-rule-engine
 
 ## Supported Operators
 
-| **Operator**     | **Description**                                                                 |
-|-------------------|---------------------------------------------------------------------------------|
-| `gte`            | Greater than or equal to                                                       |
-| `gt`             | Greater than                                                                  |
-| `lte`            | Less than or equal to                                                         |
-| `lt`             | Less than                                                                     |
-| `in`             | Value is in a list/collection                                                 |
-| `nin`            | Value is not in a list/collection                                             |
-| `startswith`     | String starts with a specific value                                           |
-| `istartswith`    | String starts with a specific value (case-insensitive)                        |
-| `endswith`       | String ends with a specific value                                             |
-| `iendswith`      | String ends with a specific value (case-insensitive)                          |
-| `contains`       | Collection or string contains a specific value                                |
-| `icontains`      | String contains a specific value (case-insensitive)                           |
-| `exact`          | Value matches exactly                                                         |
-| `iexact`         | Value matches exactly (case-insensitive)                                      |
-| `ne`             | Not equal                                                                     |
-| `eq`             | Equal to                                                                      |
-| `regex`          | Matches a regular expression pattern                                          |
-| `is`             | Identity comparison (evaluates with `is`)                                     |
+| **Operator**  | **Description**                                                |
+|---------------|----------------------------------------------------------------|
+| `gte`         | Greater than or equal to                                       |
+| `gt`          | Greater than                                                   |
+| `lte`         | Less than or equal to                                          |
+| `lt`          | Less than                                                      |
+| `in`          | Value is in a list/collection                                  |
+| `iin`         | Value is in a list/collection or string (case insensitive)     |
+| `nin`         | Value is not in a list/collection                              |
+| `inin`        | Value is not in a list/collection or string (case insensitive) |
+| `startswith`  | String starts with a specific value                            |
+| `istartswith` | String starts with a specific value (case-insensitive)         |
+| `endswith`    | String ends with a specific value                              |
+| `iendswith`   | String ends with a specific value (case-insensitive)           |
+| `contains`    | Collection or string contains a specific value                 |
+| `icontains`   | String contains a specific value (case-insensitive)            |
+| `exact`       | Value matches exactly                                          |
+| `iexact`      | Value matches exactly (case-insensitive)                       |
+| `ne`          | Not equal                                                      |
+| `eq`          | Equal to                                                       |
+| `regex`       | Matches a regular expression pattern                           |
+| `is`          | Identity comparison (evaluates with `is`)                      |
 
 ---
 

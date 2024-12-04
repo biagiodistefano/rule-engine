@@ -20,6 +20,12 @@ from rule_engine.rule import OPERATOR_FUNCTIONS, EvaluationResult, Operator, Rul
         (Operator.IN, "c", ["a", "b"], False),
         (Operator.NIN, "a", ["c", "d"], True),
         (Operator.NIN, "a", ["a", "b"], False),
+        (Operator.IIN, "Hello", ["hello", "world"], True),
+        (Operator.IIN, "hello", ["Hello", "world"], True),
+        (Operator.IIN, "hello", ["world", "foo"], False),
+        (Operator.IIN, "hello", "Hello world", True),
+        (Operator.ININ, "hello", ["world", "foo"], True),
+        (Operator.ININ, "hello", ["world", "hello"], False),
         (Operator.STARTSWITH, "hello", "he", True),
         (Operator.STARTSWITH, "hello", "lo", False),
         (Operator.ISTARTSWITH, "hello", "HE", True),
@@ -211,3 +217,17 @@ def test_result_to_json() -> None:
         res.to_json()
         == """{"field": "name", "value": "John", "operator": "eq", "condition_value": "John", "result": true, "negated": false, "children": [["AND", {"field": "age", "value": 22, "operator": "gte", "condition_value": 21, "result": true, "negated": false, "children": []}], ["OR", {"field": "name", "value": "John", "operator": "eq", "condition_value": "Jane", "result": false, "negated": false, "children": []}]]}"""  # noqa: E501
     )
+
+
+@pytest.mark.parametrize(
+    ("data", "condition_value"),
+    [
+        ({"foo": 7}, "bar"),
+        ({"foo": "bar"}, 7),
+        ({"foo": "bar"}, ["bar", 7]),
+    ],
+)
+def test_iin_value_error(data: dict[str, t.Any], condition_value: t.Any) -> None:
+    with pytest.raises(ValueError):
+        rule = Rule(foo__iin=condition_value)
+        evaluate(rule, data)

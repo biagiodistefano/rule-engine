@@ -12,7 +12,9 @@ class Operator(str, Enum):
     LTE = "lte"
     LT = "lt"
     IN = "in"
+    IIN = "iin"
     NIN = "nin"
+    ININ = "inin"
     STARTSWITH = "startswith"
     ISTARTSWITH = "istartswith"
     ENDSWITH = "endswith"
@@ -68,13 +70,31 @@ def _func(field_value: t.Any, func: t.Callable[[t.Any], bool]) -> bool:  # pragm
     raise ValueError("The value for the `FUNC` operator must be a callable.")
 
 
+def _iin(field_value: str, condition_value: str | list[str]) -> bool:
+    if not isinstance(field_value, str):
+        raise ValueError("The value for the `IIN` operator must be a string.")
+    if isinstance(condition_value, str):
+        return field_value.lower() in condition_value.lower()
+    if not isinstance(condition_value, t.Iterable):
+        raise ValueError("The condition value for the `I[N]IN` operator must be a string or a list of string.")
+    if all(isinstance(val, str) for val in condition_value):
+        return field_value.lower() in (val.lower() for val in condition_value)
+    raise ValueError("The condition value for the `I[N]IN` operator must be a string or a list of string.")
+
+
+def _inin(field_value: str, condition_value: str | list[str]) -> bool:
+    return not _iin(field_value, condition_value)
+
+
 OPERATOR_FUNCTIONS: t.Dict[str, t.Callable[..., bool]] = {
     Operator.GTE: lambda fv, cv: fv >= cv,
     Operator.GT: lambda fv, cv: fv > cv,
     Operator.LTE: lambda fv, cv: fv <= cv,
     Operator.LT: lambda fv, cv: fv < cv,
     Operator.IN: lambda fv, cv: fv in cv,
+    Operator.IIN: _iin,
     Operator.NIN: lambda fv, cv: fv not in cv,
+    Operator.ININ: _inin,
     Operator.STARTSWITH: partial(_startswith, case_insensitive=False),
     Operator.ISTARTSWITH: partial(_startswith, case_insensitive=True),
     Operator.ENDSWITH: partial(_endswith, case_insensitive=False),
