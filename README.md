@@ -155,6 +155,23 @@ assert not evaluate(rule, example_false)
 You can extend the rule engine by adding new operators.
 Use the func operator for custom logic, or modify the `OPERATOR_FUNCTIONS` dictionary for persistent custom operators.
 
+You can set a `Rule`'s id in two ways:
+
+```python
+from rule_engine import Rule
+
+rule = Rule(name="John")
+rule.id = "my-rule"
+```
+
+or
+
+```python
+from rule_engine import Rule
+
+rule = Rule(name="John", __id="my-rule")
+```
+
 ## Full example
 
 ```python

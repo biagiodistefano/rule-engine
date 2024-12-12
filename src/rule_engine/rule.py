@@ -181,7 +181,7 @@ class EvaluationResult:
 
 class Rule:
     def __init__(self, *args: "Rule", **conditions: t.Any) -> None:
-        self._id = str(uuid4())
+        self._id = self._validate_id(conditions.get("__id", str(uuid4())))
         self._conditions: list[tuple[_OP, t.Union[dict[str, t.Any], "Rule"]]] = []
         for arg in args:
             if isinstance(arg, Rule):
@@ -203,13 +203,14 @@ class Rule:
         self._id = _id
 
     @classmethod
-    def _validate_id(cls, _id: str) -> None:
+    def _validate_id(cls, _id: str) -> str:
         if not isinstance(_id, str):
             raise ValueError("The ID must be a string")
         if not re.match(r"^[\w-]{1,64}$", _id, re.IGNORECASE):
             raise ValueError(
                 "The ID must be <= 64 characters and can only contain letters, numbers, underscores, and hyphens."
             )
+        return _id
 
     @property
     def conditions(self) -> list[tuple[_OP, t.Union[dict[str, t.Any], "Rule"]]]:
