@@ -181,7 +181,7 @@ class EvaluationResult:
 
 class Rule:
     def __init__(self, *args: "Rule", **conditions: t.Any) -> None:
-        self._id = self._validate_id(conditions.get("__id", str(uuid4())))
+        self._id = self._validate_id(conditions.pop("__id", str(uuid4())))
         self._conditions: list[tuple[_OP, t.Union[dict[str, t.Any], "Rule"]]] = []
         for arg in args:
             if isinstance(arg, Rule):
