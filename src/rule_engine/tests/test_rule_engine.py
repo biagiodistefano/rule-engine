@@ -25,6 +25,7 @@ from rule_engine.rule import OPERATOR_FUNCTIONS, EvaluationResult, Operator, Rul
         (Operator.IIN, "hello", ["world", "foo"], False),
         (Operator.IIN, "hello", "Hello world", True),
         (Operator.ININ, "hello", ["world", "foo"], True),
+        (Operator.IIN, None, "Hello world", False),
         (Operator.ININ, "hello", ["world", "hello"], False),
         (Operator.STARTSWITH, "hello", "he", True),
         (Operator.STARTSWITH, "hello", "lo", False),
@@ -231,7 +232,3 @@ def test_iin_value_error(data: dict[str, t.Any], condition_value: t.Any) -> None
     with pytest.raises(ValueError):
         rule = Rule(foo__iin=condition_value)
         evaluate(rule, data)
-
-
-def test_regression_iin_field_not_in_data() -> None:
-    assert not Rule(xyz__iin=["spam"]).evaluate({'foo': 'bar'})
