@@ -71,6 +71,8 @@ def _func(field_value: t.Any, func: t.Callable[[t.Any], bool]) -> bool:  # pragm
 
 
 def _iin(field_value: str | None, condition_value: str | list[str]) -> bool:
+    if field_value is None:
+        return False
     if not isinstance(field_value, str):
         raise ValueError("The value for the `IIN` operator must be a string.")
     if isinstance(condition_value, str):
