@@ -231,3 +231,7 @@ def test_iin_value_error(data: dict[str, t.Any], condition_value: t.Any) -> None
     with pytest.raises(ValueError):
         rule = Rule(foo__iin=condition_value)
         evaluate(rule, data)
+
+
+def test_regression_iin_field_not_in_data() -> None:
+    assert not Rule(xyz__iin=["spam"]).evaluate({'foo': 'bar'})
