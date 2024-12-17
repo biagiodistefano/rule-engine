@@ -79,7 +79,7 @@ def _func(field_value: t.Any, func: t.Callable[[t.Any], bool]) -> bool:  # pragm
     raise ValueError("The value for the `FUNC` operator must be a callable.")
 
 
-def _iin(field_value: str, condition_value: str | list[str]) -> bool:
+def _iin(field_value: str | None, condition_value: str | list[str]) -> bool:
     if not isinstance(field_value, str):
         raise ValueError("The value for the `IIN` operator must be a string.")
     if isinstance(condition_value, str):
@@ -197,7 +197,7 @@ class EvaluationResult:
 
 class Rule:
     def __init__(self, *args: "Rule", **conditions: t.Any) -> None:
-        self._id = self._validate_id(conditions.get("__id", str(uuid4())))
+        self._id = self._validate_id(conditions.pop("__id", str(uuid4())))
         self._conditions: list[tuple[_OP, t.Union[dict[str, t.Any], "Rule"]]] = []
         for arg in args:
             if isinstance(arg, Rule):
