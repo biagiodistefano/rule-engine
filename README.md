@@ -81,6 +81,7 @@ uv add light-rule-engine
 | `eq`          | Equal to                                                       |
 | `regex`       | Matches a regular expression pattern                           |
 | `is`          | Identity comparison (evaluates with `is`)                      |
+|`notset`       | Value is not set                                               |
 
 ---
 

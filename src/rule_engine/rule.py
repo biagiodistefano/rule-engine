@@ -27,12 +27,21 @@ class Operator(str, Enum):
     NE = "ne"
     EQ = "eq"
     REGEX = "regex"
+    NOTSET = "notset"
     # FUNC = "func"
 
 
 AND: t.Literal["AND"] = "AND"
 OR: t.Literal["OR"] = "OR"
 _OP = t.Literal["AND", "OR"]
+
+
+class NotSetType:
+    def __repr__(self) -> str:  # pragma: no cover
+        return "NOT_SET"
+
+
+NOT_SET = NotSetType()
 
 
 def _startswith(field_value: t.Any, condition_value: t.Any, case_insensitive: bool = False) -> bool:
@@ -86,6 +95,12 @@ def _inin(field_value: str, condition_value: str | list[str]) -> bool:
     return not _iin(field_value, condition_value)
 
 
+def _not_set(field_value: t.Any, condition_value: bool) -> bool:
+    if field_value is NOT_SET:
+        return bool(condition_value)
+    return not bool(condition_value)
+
+
 OPERATOR_FUNCTIONS: t.Dict[str, t.Callable[..., bool]] = {
     Operator.GTE: lambda fv, cv: fv >= cv,
     Operator.GT: lambda fv, cv: fv > cv,
@@ -107,6 +122,7 @@ OPERATOR_FUNCTIONS: t.Dict[str, t.Callable[..., bool]] = {
     Operator.NE: lambda fv, cv: fv != cv,
     Operator.EQ: lambda fv, cv: fv == cv,
     Operator.REGEX: _regex,
+    Operator.NOTSET: _not_set,
     # Operator.FUNC: _func,
 }
 
@@ -251,7 +267,7 @@ class Rule:
                 field, operator = key, "eq"
 
             # Evaluate the operator with the example value
-            field_value = example.get(field, None)
+            field_value = example.get(field, NOT_SET)
             result = self._evaluate_operator(operator, field_value, condition_value)
             results.append(
                 EvaluationResult(
@@ -272,6 +288,8 @@ class Rule:
     @staticmethod
     def _evaluate_operator(operator: str, field_value: t.Any, condition_value: t.Any) -> bool:
         """Evaluate an operator with the given field and condition values."""
+        if field_value is NOT_SET and operator != Operator.NOTSET:
+            return False
         if operator in OPERATOR_FUNCTIONS:
             return OPERATOR_FUNCTIONS[operator](field_value, condition_value)
         raise ValueError(f"Unsupported operator: {operator}")

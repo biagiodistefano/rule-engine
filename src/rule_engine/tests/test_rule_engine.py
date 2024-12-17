@@ -231,3 +231,17 @@ def test_iin_value_error(data: dict[str, t.Any], condition_value: t.Any) -> None
     with pytest.raises(ValueError):
         rule = Rule(foo__iin=condition_value)
         evaluate(rule, data)
+
+
+@pytest.mark.parametrize(
+    ("data", "rule", "expected_result"),
+    [
+        ({}, Rule(whatever__gte=3), False),
+        ({}, Rule(name__iin=["John", "Jane"]), False),
+        ({}, Rule(name__notset=True), True),
+        ({"name": "Frank"}, Rule(name__notset=True), False),
+        ({"name": "Frank"}, Rule(name__notset=False), True),
+    ],
+)
+def test_not_set(data: dict[str, t.Any], rule: Rule, expected_result: bool) -> None:
+    assert bool(evaluate(rule, data)) is expected_result
