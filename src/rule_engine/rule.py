@@ -301,7 +301,7 @@ class Rule:
         """Evaluate an operator with the given field and condition values."""
         if field_value is NOT_SET and operator != Operator.NOTSET:
             if self._raise_on_notset:
-                raise ValueError(f"Field '{field}' is not set in the example data")
+                raise ValueError(f"Field {field!r} is not set in the example data")
             return False
         if operator in OPERATOR_FUNCTIONS:
             return OPERATOR_FUNCTIONS[operator](field_value, condition_value)

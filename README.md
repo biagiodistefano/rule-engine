@@ -182,7 +182,6 @@ rule = Rule(name="John", age__gte=21, __raise_on_notset=True)
 
 rule.evaluate({"name": "John"})
 # >>> ValueError(f"Field 'age' is not set in the example data")
-
 ```
 
 ## Full example
