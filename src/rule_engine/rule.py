@@ -197,7 +197,19 @@ class EvaluationResult:
 
 class Rule:
     def __init__(self, *args: "Rule", **conditions: t.Any) -> None:
+        """Create a new Rule instance.
+
+        Args:
+            *args: Instances of `Rule` to combine with AND logic.
+            **conditions: Conditions to evaluate with the given example data.
+                The keys should be field names and the values should be dictionaries
+                with operator names as keys and values as values.
+                - the special key `__id` can be used to set the rule ID
+                - the special key `__raise_on_notset` can be used to raise an exception
+                  if a field is not set in the example data and is to be evaluated.
+        """
         self._id = self._validate_id(conditions.pop("__id", str(uuid4())))
+        self._raise_on_notset = conditions.pop("__raise_on_notset", False)
         self._conditions: list[tuple[_OP, t.Union[dict[str, t.Any], "Rule"]]] = []
         for arg in args:
             if isinstance(arg, Rule):
@@ -268,7 +280,7 @@ class Rule:
 
             # Evaluate the operator with the example value
             field_value = example.get(field, NOT_SET)
-            result = self._evaluate_operator(operator, field_value, condition_value)
+            result = self._evaluate_operator(operator, field_value, condition_value, field)
             results.append(
                 EvaluationResult(
                     field=field,
@@ -285,10 +297,11 @@ class Rule:
             combined_result = combined_result & res
         return combined_result
 
-    @staticmethod
-    def _evaluate_operator(operator: str, field_value: t.Any, condition_value: t.Any) -> bool:
+    def _evaluate_operator(self, operator: str, field_value: t.Any, condition_value: t.Any, field: str) -> bool:
         """Evaluate an operator with the given field and condition values."""
         if field_value is NOT_SET and operator != Operator.NOTSET:
+            if self._raise_on_notset:
+                raise ValueError(f"Field '{field}' is not set in the example data")
             return False
         if operator in OPERATOR_FUNCTIONS:
             return OPERATOR_FUNCTIONS[operator](field_value, condition_value)

@@ -163,7 +163,7 @@ def test_validate_id_value_error() -> None:
 
 def test_evaluate_operator_value_error() -> None:
     with pytest.raises(ValueError):
-        Rule._evaluate_operator("invalid_operator", "field_value", "condition_value")
+        Rule()._evaluate_operator("invalid_operator", "field_value", "condition_value", "key")
 
 
 def test_and_value_error() -> None:
@@ -245,3 +245,9 @@ def test_iin_value_error(data: dict[str, t.Any], condition_value: t.Any) -> None
 )
 def test_not_set(data: dict[str, t.Any], rule: Rule, expected_result: bool) -> None:
     assert bool(evaluate(rule, data)) is expected_result
+
+
+def test_raise_on_not_set() -> None:
+    rule = Rule(foo="bar", __raise_on_notset=True)
+    with pytest.raises(ValueError):
+        rule.evaluate({})

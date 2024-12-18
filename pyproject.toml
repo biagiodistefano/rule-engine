@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "light-rule-engine"
-version = "0.4.0"
+version = "0.5.0"
 description = "A simple rule engine"
 authors = ["Biagio Distefano <me@biagiodistefano.io>"]
 readme = "README.md"
