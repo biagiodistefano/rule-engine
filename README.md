@@ -180,8 +180,9 @@ from rule_engine import Rule
 
 rule = Rule(name="John", age__gte=21, __raise_on_notset=True)
 
-# Raises ValueError(f"Field '{field}' is not set in the example data")
 rule.evaluate({"name": "John"})
+# >>> ValueError(f"Field 'age' is not set in the example data")
+
 ```
 
 ## Full example
