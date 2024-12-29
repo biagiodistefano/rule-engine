@@ -254,16 +254,27 @@ def test_raise_on_not_set() -> None:
         rule.evaluate({})
 
 
-def test_regression_not_set_json_serialization() -> None:
+@pytest.mark.parametrize(
+    ("input_data", "expected_value", "expected_result"),
+    [
+        ({"no-field-match": "not-set"}, None, False),  # NOT_SET case
+        ({"field_match": "is-set"}, "is-set", True),   # Normal case
+    ],
+)
+def test_regression_not_set_json_serialization(
+    input_data: dict[str, str],
+    expected_value: t.Optional[str],
+    expected_result: bool,
+) -> None:
     """Test that NOT_SET is properly serialized to JSON as null."""
-    rule = Rule(test_nin=["example"])
-    result = rule.evaluate({"test": "example"})
+    rule = Rule(field_match__nin=["not-set"])
+    result = rule.evaluate(input_data)
 
     # Test direct JSON serialization
     json_str = result.to_json()
     json_data = json.loads(json_str)
-    assert json_data["value"] is None
+    assert json_data["value"] == expected_value
 
     # Verify the original evaluation result
-    assert result.value is NOT_SET
-    assert not bool(result)  # Should be False since test="example" is in ["example"]
+    assert (result.value is NOT_SET) == (expected_value is None)
+    assert bool(result) is expected_result
