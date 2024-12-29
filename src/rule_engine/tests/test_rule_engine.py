@@ -3,7 +3,7 @@ import typing as t
 
 import pytest
 
-from rule_engine.rule import NOT_SET, OPERATOR_FUNCTIONS, EvaluationResult, Operator, Rule, evaluate
+from rule_engine.rule import NOT_SET, OPERATOR_FUNCTIONS, EvaluationResult, Operator, Rule, RuleJSONEncoder, evaluate
 
 
 @pytest.mark.parametrize(
@@ -263,7 +263,7 @@ def test_raise_on_not_set() -> None:
 )
 def test_regression_not_set_json_serialization(
     input_data: dict[str, str],
-    expected_value: t.Optional[str],
+    expected_value: str | None,
     expected_result: bool,
 ) -> None:
     """Test that NOT_SET is properly serialized to JSON as null."""
@@ -278,3 +278,15 @@ def test_regression_not_set_json_serialization(
     # Verify the original evaluation result
     assert (result.value is NOT_SET) == (expected_value is None)
     assert bool(result) is expected_result
+
+
+def test_rule_json_encoder() -> None:
+    """Test RuleJSONEncoder handles both NOT_SET and regular objects."""
+    encoder = RuleJSONEncoder()
+
+    # Test NOT_SET encoding
+    assert encoder.default(NOT_SET) is None
+
+    # Test regular object falls back to default behavior
+    with pytest.raises(TypeError):
+        encoder.default(object())
