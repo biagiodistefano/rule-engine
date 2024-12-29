@@ -1,8 +1,9 @@
+import json
 import typing as t
 
 import pytest
 
-from rule_engine.rule import OPERATOR_FUNCTIONS, EvaluationResult, Operator, Rule, evaluate
+from rule_engine.rule import NOT_SET, OPERATOR_FUNCTIONS, EvaluationResult, Operator, Rule, RuleJSONEncoder, evaluate
 
 
 @pytest.mark.parametrize(
@@ -251,3 +252,41 @@ def test_raise_on_not_set() -> None:
     rule = Rule(foo="bar", __raise_on_notset=True)
     with pytest.raises(ValueError):
         rule.evaluate({})
+
+
+@pytest.mark.parametrize(
+    ("input_data", "expected_value", "expected_result"),
+    [
+        ({"no-field-match": "not-set"}, None, False),  # NOT_SET case
+        ({"field_match": "is-set"}, "is-set", True),   # Normal case
+    ],
+)
+def test_regression_not_set_json_serialization(
+    input_data: dict[str, str],
+    expected_value: str | None,
+    expected_result: bool,
+) -> None:
+    """Test that NOT_SET is properly serialized to JSON as null."""
+    rule = Rule(field_match__nin=["not-set"])
+    result = rule.evaluate(input_data)
+
+    # Test direct JSON serialization
+    json_str = result.to_json()
+    json_data = json.loads(json_str)
+    assert json_data["value"] == expected_value
+
+    # Verify the original evaluation result
+    assert (result.value is NOT_SET) == (expected_value is None)
+    assert bool(result) is expected_result
+
+
+def test_rule_json_encoder() -> None:
+    """Test RuleJSONEncoder handles both NOT_SET and regular objects."""
+    encoder = RuleJSONEncoder()
+
+    # Test NOT_SET encoding
+    assert encoder.default(NOT_SET) is None
+
+    # Test regular object falls back to default behavior
+    with pytest.raises(TypeError):
+        encoder.default(object())
