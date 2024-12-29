@@ -1,8 +1,9 @@
+import json
 import typing as t
 
 import pytest
 
-from rule_engine.rule import OPERATOR_FUNCTIONS, EvaluationResult, Operator, Rule, evaluate
+from rule_engine.rule import NOT_SET, OPERATOR_FUNCTIONS, EvaluationResult, Operator, Rule, evaluate
 
 
 @pytest.mark.parametrize(
@@ -251,3 +252,18 @@ def test_raise_on_not_set() -> None:
     rule = Rule(foo="bar", __raise_on_notset=True)
     with pytest.raises(ValueError):
         rule.evaluate({})
+
+
+def test_regression_not_set_json_serialization() -> None:
+    """Test that NOT_SET is properly serialized to JSON as null."""
+    rule = Rule(test_nin=["example"])
+    result = rule.evaluate({"test": "example"})
+
+    # Test direct JSON serialization
+    json_str = result.to_json()
+    json_data = json.loads(json_str)
+    assert json_data["value"] is None
+
+    # Verify the original evaluation result
+    assert result.value is NOT_SET
+    assert not bool(result)  # Should be False since test="example" is in ["example"]

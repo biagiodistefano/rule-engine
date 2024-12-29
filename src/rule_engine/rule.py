@@ -3,6 +3,7 @@ import re
 import typing as t
 from enum import Enum
 from functools import partial
+from json import JSONEncoder
 from uuid import uuid4
 
 
@@ -189,6 +190,7 @@ class EvaluationResult:
 
     def to_json(self, *args: t.Any, **kwargs: t.Any) -> str:
         """Serialize the EvaluationResult to a JSON string."""
+        kwargs["cls"] = kwargs.get("cls", RuleJSONEncoder)
         return json.dumps(self.to_dict(), *args, **kwargs)
 
     def __repr__(self) -> str:  # pragma: no cover
@@ -369,3 +371,13 @@ class Rule:
 
 def evaluate(rule: Rule, example: t.Dict[str, t.Any]) -> EvaluationResult:
     return rule.evaluate(example)
+
+
+class RuleJSONEncoder(JSONEncoder):
+    """Custom JSON encoder that handles NotSetType."""
+
+    def default(self, obj: t.Any) -> t.Any:
+        """Handle NotSetType."""
+        if isinstance(obj, NotSetType):
+            return None
+        return super().default(obj)
