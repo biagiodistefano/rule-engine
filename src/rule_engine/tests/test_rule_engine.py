@@ -237,11 +237,11 @@ def test_iin_value_error(data: dict[str, t.Any], condition_value: t.Any) -> None
 @pytest.mark.parametrize(
     ("data", "rule", "expected_result"),
     [
-        ({}, Rule(whatever__gte=3), False),
-        ({}, Rule(name__iin=["John", "Jane"]), False),
-        ({}, Rule(name__notset=True), True),
-        ({"name": "Frank"}, Rule(name__notset=True), False),
-        ({"name": "Frank"}, Rule(name__notset=False), True),
+        ({}, Rule(whatever__gte=3, __raise_on_notset=False), False),
+        ({}, Rule(name__iin=["John", "Jane"], __raise_on_notset=False), False),
+        ({}, Rule(name__notset=True, __raise_on_notset=False), True),
+        ({"name": "Frank"}, Rule(name__notset=True, __raise_on_notset=False), False),
+        ({"name": "Frank"}, Rule(name__notset=False, __raise_on_notset=False), True),
     ],
 )
 def test_not_set(data: dict[str, t.Any], rule: Rule, expected_result: bool) -> None:
@@ -267,7 +267,7 @@ def test_regression_not_set_json_serialization(
     expected_result: bool,
 ) -> None:
     """Test that NOT_SET is properly serialized to JSON as null."""
-    rule = Rule(field_match__nin=["not-set"])
+    rule = Rule(field_match__nin=["not-set"], __raise_on_notset=False)
     result = rule.evaluate(input_data)
 
     # Test direct JSON serialization
