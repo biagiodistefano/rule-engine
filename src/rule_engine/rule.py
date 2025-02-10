@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import typing as t
 from enum import Enum
@@ -207,11 +208,13 @@ class Rule:
                 The keys should be field names and the values should be dictionaries
                 with operator names as keys and values as values.
                 - the special key `__id` can be used to set the rule ID
-                - the special key `__raise_on_notset` can be used to raise an exception
-                  if a field is not set in the example data and is to be evaluated.
+                - the special key `__raise_on_notset` can be used to override the default behavior
+                  of raising an exception when a field is not set in the example data
         """
         self._id = self._validate_id(conditions.pop("__id", str(uuid4())))
-        self._raise_on_notset = conditions.pop("__raise_on_notset", False)
+        # Default to True unless explicitly disabled via env var or override in conditions
+        default_raise = os.getenv("RULE_ENGINE_RAISE_ON_NOTSET", "true").lower() in ["true", "1"]
+        self._raise_on_notset = conditions.pop("__raise_on_notset", default_raise)
         self._conditions: list[tuple[_OP, t.Union[dict[str, t.Any], "Rule"]]] = []
         for arg in args:
             if isinstance(arg, Rule):

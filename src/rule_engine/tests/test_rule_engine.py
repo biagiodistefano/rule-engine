@@ -237,11 +237,11 @@ def test_iin_value_error(data: dict[str, t.Any], condition_value: t.Any) -> None
 @pytest.mark.parametrize(
     ("data", "rule", "expected_result"),
     [
-        ({}, Rule(whatever__gte=3), False),
-        ({}, Rule(name__iin=["John", "Jane"]), False),
-        ({}, Rule(name__notset=True), True),
-        ({"name": "Frank"}, Rule(name__notset=True), False),
-        ({"name": "Frank"}, Rule(name__notset=False), True),
+        ({}, Rule(whatever__gte=3, __raise_on_notset=False), False),
+        ({}, Rule(name__iin=["John", "Jane"], __raise_on_notset=False), False),
+        ({}, Rule(name__notset=True, __raise_on_notset=False), True),
+        ({"name": "Frank"}, Rule(name__notset=True, __raise_on_notset=False), False),
+        ({"name": "Frank"}, Rule(name__notset=False, __raise_on_notset=False), True),
     ],
 )
 def test_not_set(data: dict[str, t.Any], rule: Rule, expected_result: bool) -> None:
@@ -258,7 +258,7 @@ def test_raise_on_not_set() -> None:
     ("input_data", "expected_value", "expected_result"),
     [
         ({"no-field-match": "not-set"}, None, False),  # NOT_SET case
-        ({"field_match": "is-set"}, "is-set", True),   # Normal case
+        ({"field_match": "is-set"}, "is-set", True),  # Normal case
     ],
 )
 def test_regression_not_set_json_serialization(
@@ -267,7 +267,7 @@ def test_regression_not_set_json_serialization(
     expected_result: bool,
 ) -> None:
     """Test that NOT_SET is properly serialized to JSON as null."""
-    rule = Rule(field_match__nin=["not-set"])
+    rule = Rule(field_match__nin=["not-set"], __raise_on_notset=False)
     result = rule.evaluate(input_data)
 
     # Test direct JSON serialization
@@ -290,3 +290,42 @@ def test_rule_json_encoder() -> None:
     # Test regular object falls back to default behavior
     with pytest.raises(TypeError):
         encoder.default(object())
+
+
+@pytest.mark.parametrize(
+    ("env_value", "init_value", "expected_raise"),
+    [
+        ("true", None, True),  # Default env var behavior
+        ("1", None, True),  # Alternative true value
+        ("false", None, False),
+        ("", None, False),
+        ("invalid", None, False),
+        ("true", False, False),  # Explicit override in init
+        ("false", True, True),  # Explicit override in init
+    ],
+)
+def test_raise_on_notset_behavior_env_var_settings(
+    env_value: str, init_value: bool | None, expected_raise: bool, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test that _raise_on_notset respects both environment variable and explicit settings."""
+    monkeypatch.setenv("RULE_ENGINE_RAISE_ON_NOTSET", env_value)
+
+    rule_kwargs = {}
+    if init_value is not None:
+        rule_kwargs["__raise_on_notset"] = init_value
+
+    rule = Rule(foo="bar", **rule_kwargs)
+
+    if expected_raise:
+        with pytest.raises(ValueError, match="Field 'foo' is not set in the example data"):
+            rule.evaluate({})
+    else:
+        result = rule.evaluate({})
+        assert bool(result) is False
+
+
+def test_raise_on_notset_behavior_no_env_var_expected_raise() -> None:
+    """Test that _raise_on_notset respects both environment variable and explicit settings."""
+    rule = Rule(foo="bar")
+    with pytest.raises(ValueError, match="Field 'foo' is not set in the example data"):
+        rule.evaluate({})
