@@ -254,6 +254,12 @@ def test_raise_on_not_set() -> None:
         rule.evaluate({})
 
 
+def test_raise_on_not_set_evaluate() -> None:
+    rule = Rule(foo="bar", __raise_on_notset=False)
+    with pytest.raises(ValueError):
+        rule.evaluate({}, raise_on_notset=True)
+
+
 @pytest.mark.parametrize(
     ("input_data", "expected_value", "expected_result"),
     [
