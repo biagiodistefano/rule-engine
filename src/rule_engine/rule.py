@@ -271,7 +271,10 @@ class Rule:
         return new_rule
 
     def _evaluate_condition(
-        self, condition: t.Union[dict[str, t.Any], "Rule"], example: t.Dict[str, t.Any]
+        self,
+        condition: t.Union[dict[str, t.Any], "Rule"],
+        example: t.Dict[str, t.Any],
+        raise_on_notset: bool | None = None,
     ) -> EvaluationResult:
         if isinstance(condition, Rule):
             return condition.evaluate(example)
@@ -285,7 +288,7 @@ class Rule:
 
             # Evaluate the operator with the example value
             field_value = example.get(field, NOT_SET)
-            result = self._evaluate_operator(operator, field_value, condition_value, field)
+            result = self._evaluate_operator(operator, field_value, condition_value, field, raise_on_notset)
             results.append(
                 EvaluationResult(
                     field=field,
@@ -302,24 +305,32 @@ class Rule:
             combined_result = combined_result & res
         return combined_result
 
-    def _evaluate_operator(self, operator: str, field_value: t.Any, condition_value: t.Any, field: str) -> bool:
+    def _evaluate_operator(
+        self,
+        operator: str,
+        field_value: t.Any,
+        condition_value: t.Any,
+        field: str,
+        raise_on_notset: bool | None = None,
+    ) -> bool:
         """Evaluate an operator with the given field and condition values."""
+        raise_on_notset = raise_on_notset or self._raise_on_notset
         if field_value is NOT_SET and operator != Operator.NOTSET:
-            if self._raise_on_notset:
+            if raise_on_notset:
                 raise ValueError(f"Field {field!r} is not set in the example data")
             return False
         if operator in OPERATOR_FUNCTIONS:
             return OPERATOR_FUNCTIONS[operator](field_value, condition_value)
         raise ValueError(f"Unsupported operator: {operator}")
 
-    def evaluate(self, example: t.Dict[str, t.Any]) -> EvaluationResult:
+    def evaluate(self, example: t.Dict[str, t.Any], raise_on_notset: bool | None = None) -> EvaluationResult:
         if not self.conditions:
             return EvaluationResult(result=True)
 
         combined_result: EvaluationResult | None = None
 
         for op, condition in self.conditions:
-            child_result = self._evaluate_condition(condition, example)
+            child_result = self._evaluate_condition(condition, example, raise_on_notset)
             if combined_result is None:
                 combined_result = child_result
             elif op == AND:
@@ -372,8 +383,8 @@ class Rule:
         return f"{self.__class__.__name__}(conditions={self.conditions}, negated={self.negated})"
 
 
-def evaluate(rule: Rule, example: t.Dict[str, t.Any]) -> EvaluationResult:
-    return rule.evaluate(example)
+def evaluate(rule: Rule, example: t.Dict[str, t.Any], raise_on_notset: bool | None = None) -> EvaluationResult:
+    return rule.evaluate(example, raise_on_notset)
 
 
 class RuleJSONEncoder(JSONEncoder):
