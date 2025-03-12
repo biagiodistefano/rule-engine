@@ -314,7 +314,7 @@ class Rule:
         raise_on_notset: bool | None = None,
     ) -> bool:
         """Evaluate an operator with the given field and condition values."""
-        raise_on_notset = raise_on_notset or self._raise_on_notset
+        raise_on_notset = raise_on_notset if raise_on_notset is not None else self._raise_on_notset
         if field_value is NOT_SET and operator != Operator.NOTSET:
             if raise_on_notset:
                 raise ValueError(f"Field {field!r} is not set in the example data")
