@@ -178,10 +178,10 @@ class EvaluationResult:
         self.children.append((OR, other))
         return self
 
-    def to_dict(self) -> EvaluationResultDict:
+    def to_dict(self, *, mode: t.Literal["python", "json"] = "python") -> EvaluationResultDict:
         return EvaluationResultDict(
             field=self.field,
-            value=self.value,
+            value=self.value if mode == "python" else RuleJSONEncoder().encode(self.value),
             operator=self.operator,
             condition_value=self.condition_value,
             result=self.result,
@@ -212,8 +212,8 @@ class Rule:
                   of raising an exception when a field is not set in the example data
         """
         self._id = self._validate_id(conditions.pop("__id", str(uuid4())))
-        # Default to True unless explicitly disabled via env var or override in conditions
-        default_raise = os.getenv("RULE_ENGINE_RAISE_ON_NOTSET", "true").lower() in ["true", "1"]
+        # Default to False unless explicitly enabled via env var or override in conditions
+        default_raise = os.getenv("RULE_ENGINE_RAISE_ON_NOTSET", "false").lower() in ["true", "1"]
         self._raise_on_notset = conditions.pop("__raise_on_notset", default_raise)
         self._conditions: list[tuple[_OP, t.Union[dict[str, t.Any], "Rule"]]] = []
         for arg in args:

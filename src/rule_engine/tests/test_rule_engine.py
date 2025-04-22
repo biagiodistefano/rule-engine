@@ -220,6 +220,57 @@ def test_result_to_json() -> None:
     )
 
 
+def test_result_to_dict_json_mode() -> None:
+    rule = Rule(name="John") & Rule(age__gte=21)
+    example = {"age": 22}
+    res = evaluate(rule, example)
+    assert not bool(res)
+    assert res.to_dict() == {
+        "field": "name",
+        "value": NOT_SET,
+        "operator": "eq",
+        "condition_value": "John",
+        "result": False,
+        "negated": False,
+        "children": [
+            (
+                "AND",
+                {
+                    "field": "age",
+                    "value": 22,
+                    "operator": "gte",
+                    "condition_value": 21,
+                    "result": True,
+                    "negated": False,
+                    "children": [],
+                },
+            )
+        ],
+    }
+    assert res.to_dict(mode="json") == {
+        "field": "name",
+        "value": "null",
+        "operator": "eq",
+        "condition_value": "John",
+        "result": False,
+        "negated": False,
+        "children": [
+            (
+                "AND",
+                {
+                    "field": "age",
+                    "value": 22,
+                    "operator": "gte",
+                    "condition_value": 21,
+                    "result": True,
+                    "negated": False,
+                    "children": [],
+                },
+            )
+        ],
+    }
+
+
 @pytest.mark.parametrize(
     ("data", "condition_value"),
     [
@@ -330,7 +381,13 @@ def test_raise_on_notset_behavior_env_var_settings(
         assert bool(result) is False
 
 
-def test_raise_on_notset_behavior_no_env_var_expected_raise() -> None:
+@pytest.fixture
+def set_not_set_env_var(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Fixture to set the environment variable for testing."""
+    monkeypatch.setenv("RULE_ENGINE_RAISE_ON_NOTSET", "true")
+
+
+def test_raise_on_notset_behavior_env_var_expected_raise(set_not_set_env_var: None) -> None:
     """Test that _raise_on_notset respects both environment variable and explicit settings."""
     rule = Rule(foo="bar")
     with pytest.raises(ValueError, match="Field 'foo' is not set in the example data"):
