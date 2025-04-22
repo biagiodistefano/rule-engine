@@ -71,6 +71,43 @@ def test_simple_eq_null() -> None:
     assert rule_to_schema(rule) == expected_schema
 
 
+# --- Start: Added tests for _schema_exact coverage ---
+def test_simple_eq_float() -> None:
+    # Covers line 131 in _schema_exact
+    rule: Rule = Rule(score=98.6)
+    expected_schema: JSONSchema = {
+        "type": "object",
+        "properties": {"score": {"type": "number", "const": 98.6}},
+        "required": ["score"],
+    }
+    assert rule_to_schema(rule) == expected_schema
+
+
+def test_simple_eq_list() -> None:
+    # Covers line 135 in _schema_exact
+    rule: Rule = Rule(tags=["a", "b"])
+    expected_schema: JSONSchema = {
+        "type": "object",
+        "properties": {"tags": {"type": "array", "const": ["a", "b"]}},
+        "required": ["tags"],
+    }
+    assert rule_to_schema(rule) == expected_schema
+
+
+def test_simple_eq_dict() -> None:
+    # Covers line 137 in _schema_exact
+    rule: Rule = Rule(meta={"key": "value"})
+    expected_schema: JSONSchema = {
+        "type": "object",
+        "properties": {"meta": {"type": "object", "const": {"key": "value"}}},
+        "required": ["meta"],
+    }
+    assert rule_to_schema(rule) == expected_schema
+
+
+# --- End: Added tests for _schema_exact coverage ---
+
+
 def test_simple_ne() -> None:
     rule: Rule = Rule(status__ne="inactive")
     expected_schema: JSONSchema = {
@@ -122,6 +159,7 @@ def test_simple_lte() -> None:
 
 
 def test_simple_in_string() -> None:
+    # Covers line 71 in _schema_in
     rule: Rule = Rule(tag__in=["urgent", "critical"])
     expected_schema: JSONSchema = {
         "type": "object",
@@ -132,6 +170,7 @@ def test_simple_in_string() -> None:
 
 
 def test_simple_in_integer() -> None:
+    # Covers line 75 in _schema_in
     rule: Rule = Rule(code__in=[404, 500, 503])
     expected_schema: JSONSchema = {
         "type": "object",
@@ -139,6 +178,54 @@ def test_simple_in_integer() -> None:
         "required": ["code"],
     }
     assert rule_to_schema(rule) == expected_schema
+
+
+# --- Start: Added tests for _schema_in type inference coverage ---
+def test_simple_in_boolean() -> None:
+    # Covers line 73 in _schema_in
+    rule: Rule = Rule(flag__in=[True, False])
+    expected_schema: JSONSchema = {
+        "type": "object",
+        "properties": {"flag": {"type": "boolean", "enum": [True, False]}},
+        "required": ["flag"],
+    }
+    assert rule_to_schema(rule) == expected_schema
+
+
+def test_simple_in_float() -> None:
+    # Covers line 77 in _schema_in
+    rule: Rule = Rule(value__in=[1.1, 2.2])
+    expected_schema: JSONSchema = {
+        "type": "object",
+        "properties": {"value": {"type": "number", "enum": [1.1, 2.2]}},
+        "required": ["value"],
+    }
+    assert rule_to_schema(rule) == expected_schema
+
+
+def test_simple_in_list() -> None:
+    # Covers line 79 in _schema_in
+    rule: Rule = Rule(value__in=[[1], [2]])
+    expected_schema: JSONSchema = {
+        "type": "object",
+        "properties": {"value": {"type": "array", "enum": [[1], [2]]}},
+        "required": ["value"],
+    }
+    assert rule_to_schema(rule) == expected_schema
+
+
+def test_simple_in_dict() -> None:
+    # Covers line 81 in _schema_in
+    rule: Rule = Rule(value__in=[{"a": 1}, {"b": 2}])
+    expected_schema: JSONSchema = {
+        "type": "object",
+        "properties": {"value": {"type": "object", "enum": [{"a": 1}, {"b": 2}]}},
+        "required": ["value"],
+    }
+    assert rule_to_schema(rule) == expected_schema
+
+
+# --- End: Added tests for _schema_in type inference coverage ---
 
 
 def test_simple_in_mixed_types() -> None:
@@ -450,6 +537,64 @@ def test_explicit_and() -> None:
     }
     assert expected_part1 in all_of_list
     assert expected_part2 in all_of_list
+
+
+# --- Start: Added tests for schema merge coverage ---
+def test_merge_and_flattening() -> None:
+    # Covers line 206 in _merge_schemas_and
+    # (A & B) & C -> Creates Rule(Rule(A, B), C)
+    # Inner Rule(A, B) generates {"allOf": [schema_A, schema_B]}
+    # Outer Rule combines this with schema_C using AND
+    # _merge_schemas_and should flatten this to {"allOf": [schema_A, schema_B, schema_C]}
+    rule = (Rule(a=1) & Rule(b=2)) & Rule(c=3)
+    schema = rule_to_schema(rule)
+
+    assert "allOf" in schema
+    assert isinstance(schema.get("allOf"), list)
+    all_of_list: t.List[JSONSchema] = schema["allOf"]
+    # Check essential structure - it should be flattened
+    assert len(all_of_list) == 3
+    assert {"type": "object", "properties": {"a": {"type": "integer", "const": 1}}, "required": ["a"]} in all_of_list
+    assert {"type": "object", "properties": {"b": {"type": "integer", "const": 2}}, "required": ["b"]} in all_of_list
+    assert {"type": "object", "properties": {"c": {"type": "integer", "const": 3}}, "required": ["c"]} in all_of_list
+
+
+def test_merge_or_flattening() -> None:
+    # Covers line 233 in _merge_schemas_or
+    # (A | B) | C -> Creates Rule(Rule(A) | Rule(B)) | Rule(C)
+    # Inner Rule(A) | Rule(B) generates {"anyOf": [schema_A, schema_B]}
+    # Outer | combines this with schema_C using OR
+    # _merge_schemas_or should flatten this to {"anyOf": [schema_A, schema_B, schema_C]}
+    rule = (Rule(a=1) | Rule(b=2)) | Rule(c=3)
+    schema = rule_to_schema(rule)
+
+    assert "anyOf" in schema
+    assert isinstance(schema.get("anyOf"), list)
+    any_of_list: t.List[JSONSchema] = schema["anyOf"]
+    # Check essential structure - it should be flattened
+    assert len(any_of_list) == 3
+    assert {"type": "object", "properties": {"a": {"type": "integer", "const": 1}}, "required": ["a"]} in any_of_list
+    assert {"type": "object", "properties": {"b": {"type": "integer", "const": 2}}, "required": ["b"]} in any_of_list
+    assert {"type": "object", "properties": {"c": {"type": "integer", "const": 3}}, "required": ["c"]} in any_of_list
+
+
+def test_merge_or_only_not_schemas() -> None:
+    # Covers line 219 in _merge_schemas_or
+    # Rule that evaluates to "not anything" OR "not anything"
+    # Example: field must not exist OR field must not exist
+    rule = Rule(field__notset=True) | Rule(field__notset=True)
+    schema = rule_to_schema(rule)
+    # ORing two identical 'not required' results in the same 'not required'
+    # Let's try a different approach: ORing two rules that inherently match nothing.
+    # Rule() is {}, ~Rule() is {"not": {}}
+    rule_match_nothing = ~Rule()  # Represents {"not": {}}
+    combined_rule = rule_match_nothing | rule_match_nothing
+    schema = rule_to_schema(combined_rule)
+    # anyOf [{"not": {}}, {"not": {}}] simplifies to {"not": {}}
+    assert schema == {"not": {}}
+
+
+# --- End: Added tests for schema merge coverage ---
 
 
 def test_explicit_or() -> None:

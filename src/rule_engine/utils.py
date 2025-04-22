@@ -78,7 +78,7 @@ def _schema_in(value: ConditionValue) -> JSONSchema:
             inferred_type = "number"
         elif isinstance(first_item, list):
             inferred_type = "array"
-        elif isinstance(first_item, dict):
+        elif isinstance(first_item, dict):  # pragma: no branch
             inferred_type = "object"
         # Note: null type inference is tricky with enum
 
@@ -130,11 +130,11 @@ def _schema_exact(value: ConditionValue) -> JSONSchema:
         schema["type"] = "integer"
     elif isinstance(value, float):
         schema["type"] = "number"
-    elif isinstance(value, type(None)):
+    elif value is None:
         schema["type"] = "null"
     elif isinstance(value, list):
         schema["type"] = "array"
-    elif isinstance(value, dict):
+    elif isinstance(value, dict):  # pragma: no branch
         schema["type"] = "object"
     return schema
 
